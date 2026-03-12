@@ -505,12 +505,9 @@
           }
         }
 
-        function buildApiBaseUrl() {
+        function isLocalBackend() {
           const loc = window.location;
-          if (loc.hostname === "localhost" || loc.hostname === "127.0.0.1") {
-            return loc.protocol + "//" + loc.hostname + ":8000";
-          }
-          return "http://127.0.0.1:8000";
+          return loc.hostname === "localhost" || loc.hostname === "127.0.0.1";
         }
 
         form.addEventListener("submit", async function (event) {
@@ -525,8 +522,25 @@
           setLoading(true);
 
           try {
-            const baseUrl = buildApiBaseUrl();
-            const url = baseUrl + "/apod?date=" + encodeURIComponent(selected);
+            let url;
+
+            if (isLocalBackend()) {
+              // Modo DESENVOLVIMENTO: usa seu backend FastAPI local
+              const baseUrl = window.location.protocol + "//127.0.0.1:8000";
+              url = baseUrl + "/apod?date=" + encodeURIComponent(selected);
+            } else {
+              // Modo PRODUÇÃO (GitHub Pages, etc): chama a API da NASA direto
+              // ATENÇÃO: a chave abaixo fica visível no frontend.
+              // Use uma chave gratuita da NASA ou a sua (para estudo).
+              const NASA_API_KEY = "lukO6KuNdeYm57EU8SeUBksgu4DeH9VrHRz9zmRA";
+              const baseUrl = "https://api.nasa.gov/planetary/apod";
+              const params =
+                "?api_key=" +
+                encodeURIComponent(NASA_API_KEY) +
+                "&date=" +
+                encodeURIComponent(selected);
+              url = baseUrl + params;
+            }
 
             const response = await fetch(url);
 
@@ -552,10 +566,10 @@
             setStatus("APOD carregado com sucesso.", "info");
           } catch (err) {
             console.error(err);
-            setStatus(
-              "Não foi possível conectar ao backend em /apod. Verifique se o servidor FastAPI está rodando em http://127.0.0.1:8000.",
-              "error"
-            );
+            const message = isLocalBackend()
+              ? 'Não foi possível conectar ao backend em /apod. Verifique se o servidor FastAPI está rodando em http://127.0.0.1:8000.'
+              : "Não foi possível conectar à API da NASA. Verifique sua conexão com a internet ou tente novamente mais tarde.";
+            setStatus(message, "error");
             pillLabel.textContent = "Falha na conexão";
           } finally {
             setLoading(false);
