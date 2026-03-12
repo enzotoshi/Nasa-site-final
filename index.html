@@ -417,7 +417,7 @@
           </div>
 
           <div class="footer">
-            <span>Backend: <code>/apod?date=YYYY-MM-DD</code></span>
+            <span>API: <code>NASA APOD</code></span>
             <a href="https://api.nasa.gov/" target="_blank" rel="noreferrer">Documentação oficial NASA APIs</a>
           </div>
         </section>
@@ -505,14 +505,6 @@
           }
         }
 
-        function buildApiBaseUrl() {
-          const loc = window.location;
-          if (loc.hostname === "localhost" || loc.hostname === "127.0.0.1") {
-            return loc.protocol + "//" + loc.hostname + ":8000";
-          }
-          return "http://127.0.0.1:8000";
-        }
-
         form.addEventListener("submit", async function (event) {
           event.preventDefault();
           const selected = dateInput.value;
@@ -525,8 +517,9 @@
           setLoading(true);
 
           try {
-            const baseUrl = buildApiBaseUrl();
-            const url = baseUrl + "/apod?date=" + encodeURIComponent(selected);
+            // Chama a API da NASA diretamente
+            const NASA_API_KEY = "DEMO_KEY";
+            const url = "https://api.nasa.gov/planetary/apod?api_key=" + NASA_API_KEY + "&date=" + encodeURIComponent(selected);
 
             const response = await fetch(url);
 
@@ -534,12 +527,10 @@
               let message = "Erro ao buscar APOD. Código " + response.status;
               try {
                 const payload = await response.json();
-                if (payload && payload.detail) {
-                  if (typeof payload.detail === "string") {
-                    message = payload.detail;
-                  } else if (payload.detail.message) {
-                    message = payload.detail.message;
-                  }
+                if (payload && payload.msg) {
+                  message = payload.msg;
+                } else if (payload && payload.error) {
+                  message = payload.error.message || payload.error;
                 }
               } catch (e) {}
               setStatus(message, "error");
@@ -553,7 +544,7 @@
           } catch (err) {
             console.error(err);
             setStatus(
-              "Não foi possível conectar ao backend em /apod. Verifique se o servidor FastAPI está rodando em http://127.0.0.1:8000.",
+              "Não foi possível conectar à API da NASA. Verifique sua conexão com a internet.",
               "error"
             );
             pillLabel.textContent = "Falha na conexão";
